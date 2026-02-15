@@ -23,7 +23,7 @@ function mattress_advisor_render_result( $product, $form_data, $related_products
                 </svg>
             </div>
             <h2>تبریک!</h2>
-            <p>بهترین تشک برای شما پیدا شد</p>
+            <p>بهترین درب متناسب با نیاز شما پیدا شد</p>
         </div>
 
         <!-- Product Main Section -->
@@ -134,7 +134,7 @@ function mattress_advisor_render_result( $product, $form_data, $related_products
         <div class="why-suitable-section">
             <h3 class="section-title">
                 <span class="section-icon">💡</span>
-                چرا این تشک برای شما مناسب است؟
+                چرا این درب برای شما مناسب است؟
             </h3>
             <div class="suitability-content">
                 <?php 
@@ -232,21 +232,21 @@ function mattress_advisor_render_result( $product, $form_data, $related_products
                 </div>
                 <div class="score-details">
                     <div class="score-item">
-                        <span class="score-label">تشک اکتیو</span>
+                        <span class="score-label">گزینه اول</span>
                         <div class="score-bar">
                             <div class="score-progress" style="width: 95%"></div>
                         </div>
                         <span class="score-value">95%</span>
                     </div>
                     <div class="score-item">
-                        <span class="score-label">تشک پریمیوم</span>
+                        <span class="score-label">گزینه دوم</span>
                         <div class="score-bar">
                             <div class="score-progress" style="width: 85%"></div>
                         </div>
                         <span class="score-value">85%</span>
                     </div>
                     <div class="score-item">
-                        <span class="score-label">تشک اکونومی</span>
+                        <span class="score-label">گزینه سوم</span>
                         <div class="score-bar">
                             <div class="score-progress" style="width: 75%"></div>
                         </div>
@@ -267,7 +267,7 @@ function mattress_advisor_render_result( $product, $form_data, $related_products
         <div class="related-section">
             <h3 class="section-title">
                 <span class="section-icon">🛒</span>
-                سایر محصولات پیشنهادی تشک مدیکال
+                سایر گزینه‌های پیشنهادی
             </h3>
             <div class="related-grid">
                 <?php foreach( $related_products as $rp ): if(!$rp) continue; ?>
@@ -309,7 +309,7 @@ function mattress_advisor_render_result( $product, $form_data, $related_products
         <div class="result-actions">
             <button id="restart-advice" class="btn btn-secondary" onclick="restartWizard()" data-history-id="<?php echo esc_attr( $history_id ); ?>">
                 <span class="btn-icon">🔁</span>
-                شروع مجدد مشاوره
+                شروع مجدد مشاوره درب
             </button>
             <button id="share-result" class="btn btn-outline" onclick="shareResult()" data-history-id="<?php echo esc_attr( $history_id ); ?>">
                 <span class="btn-icon">🔗</span>

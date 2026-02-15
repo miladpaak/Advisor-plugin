@@ -838,6 +838,12 @@ function mattress_advisor_register_settings() {
         'mattress_advisor_settings_sanitize'
     );
 
+    register_setting(
+        'mattress_advisor_display_settings',
+        'mattress_advisor_style_options',
+        'mattress_advisor_style_sanitize'
+    );
+
     add_settings_section(
         'mattress_advisor_display_section',
         'کدام بخش‌ها در صفحه نتیجه نمایش داده شوند؟',
@@ -890,6 +896,30 @@ function mattress_advisor_register_settings() {
         'show_recommendation',
         'نمایش محصولات پیشنهادی در مرحله آخر',
         'mattress_advisor_show_recommendation_callback',
+        'mattress-advisor-settings',
+        'mattress_advisor_display_section'
+    );
+
+    add_settings_field(
+        'primary_color',
+        'رنگ اصلی فرم',
+        'mattress_advisor_primary_color_callback',
+        'mattress-advisor-settings',
+        'mattress_advisor_display_section'
+    );
+
+    add_settings_field(
+        'accent_color',
+        'رنگ تیترها',
+        'mattress_advisor_accent_color_callback',
+        'mattress-advisor-settings',
+        'mattress_advisor_display_section'
+    );
+
+    add_settings_field(
+        'bg_color',
+        'رنگ پس‌زمینه فرم',
+        'mattress_advisor_bg_color_callback',
         'mattress-advisor-settings',
         'mattress_advisor_display_section'
     );
@@ -946,6 +976,33 @@ function mattress_advisor_settings_sanitize($input) {
         $sanitized[$key] = isset($input[$key]) ? 1 : 0;
     }
     return $sanitized;
+}
+
+
+function mattress_advisor_primary_color_callback() {
+    $options = get_option('mattress_advisor_style_options', []);
+    $value = !empty($options['primary_color']) ? $options['primary_color'] : '#4CAF50';
+    echo '<input type="color" name="mattress_advisor_style_options[primary_color]" value="' . esc_attr($value) . '" />';
+}
+
+function mattress_advisor_accent_color_callback() {
+    $options = get_option('mattress_advisor_style_options', []);
+    $value = !empty($options['accent_color']) ? $options['accent_color'] : '#1f2937';
+    echo '<input type="color" name="mattress_advisor_style_options[accent_color]" value="' . esc_attr($value) . '" />';
+}
+
+function mattress_advisor_bg_color_callback() {
+    $options = get_option('mattress_advisor_style_options', []);
+    $value = !empty($options['bg_color']) ? $options['bg_color'] : '#ffffff';
+    echo '<input type="color" name="mattress_advisor_style_options[bg_color]" value="' . esc_attr($value) . '" />';
+}
+
+function mattress_advisor_style_sanitize($input) {
+    return [
+        'primary_color' => isset($input['primary_color']) ? sanitize_hex_color($input['primary_color']) : '#4CAF50',
+        'accent_color'  => isset($input['accent_color']) ? sanitize_hex_color($input['accent_color']) : '#1f2937',
+        'bg_color'      => isset($input['bg_color']) ? sanitize_hex_color($input['bg_color']) : '#ffffff',
+    ];
 }
 
 function mattress_advisor_settings_page() {

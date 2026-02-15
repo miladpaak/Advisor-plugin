@@ -4,399 +4,200 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 add_shortcode('mattress_advisor_form', 'mattress_advisor_form_shortcode');
 
 function mattress_advisor_form_shortcode() {
-    // Check if user is logged in
-    if (!is_user_logged_in()) {
-        ob_start();
-        ?>
-        <div class="mattress-wizard login-required">
-            <div class="login-message">
-                <div class="login-box">
-                    <h3>🔐 ورود به حساب کاربری</h3>
-                    <p>برای مشاهده فرم مشاوره تشک، ابتدا وارد حساب کاربری خود شوید.</p>
-                    <div class="login-actions">
-                        <a href="<?php echo wp_login_url(get_permalink()); ?>" class="btn-login">ورود به سایت</a>
-                        <a href="<?php echo wp_registration_url(); ?>" class="btn-register">ثبت نام</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <style>
-        .login-required {
-            max-width: 500px;
-            margin: 40px auto;
-            text-align: center;
-        }
-        .login-box {
-            background: #fff;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            border: 2px solid #4CAF50;
-        }
-        .login-box h3 {
-            color: #4CAF50;
-            margin-bottom: 15px;
-            font-size: 24px;
-        }
-        .login-box p {
-            color: #666;
-            margin-bottom: 25px;
-            line-height: 1.6;
-        }
-        .login-actions {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .btn-login, .btn-register {
-            padding: 12px 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            display: inline-block;
-        }
-        .btn-login {
-            background: #4CAF50;
-            color: white;
-        }
-        .btn-login:hover {
-            background: #45a049;
-            color: white;
-        }
-        .btn-register {
-            background: #fff;
-            color: #4CAF50;
-            border: 2px solid #4CAF50;
-        }
-        .btn-register:hover {
-            background: #4CAF50;
-            color: white;
-        }
-        </style>
-        <?php
-        return ob_get_clean();
-    }
-
-    // Get current user data for auto-fill
-    $current_user = wp_get_current_user();
-    $user_meta = get_user_meta($current_user->ID);
-    
-    // Get WooCommerce billing data if available
-    $first_name = '';
-    $last_name = '';
-    $mobile = '';
-    $province = '';
-    
-    if (class_exists('WooCommerce')) {
-        $first_name = get_user_meta($current_user->ID, 'billing_first_name', true) ?: $current_user->first_name;
-        $last_name = get_user_meta($current_user->ID, 'billing_last_name', true) ?: $current_user->last_name;
-        $mobile = get_user_meta($current_user->ID, 'billing_phone', true);
-        $province = get_user_meta($current_user->ID, 'billing_state', true);
-    } else {
-        $first_name = $current_user->first_name;
-        $last_name = $current_user->last_name;
-    }
-    $full_name = trim($first_name . ' ' . $last_name);
+    $style_options = get_option('mattress_advisor_style_options', []);
+    $primary_color = !empty($style_options['primary_color']) ? sanitize_hex_color($style_options['primary_color']) : '#4CAF50';
+    $accent_color  = !empty($style_options['accent_color']) ? sanitize_hex_color($style_options['accent_color']) : '#1f2937';
+    $bg_color      = !empty($style_options['bg_color']) ? sanitize_hex_color($style_options['bg_color']) : '#ffffff';
 
     ob_start();
     ?>
+    <style>
+        #mattress-advisor-container{--advisor-primary:<?php echo esc_attr($primary_color ?: '#4CAF50'); ?>;--advisor-accent:<?php echo esc_attr($accent_color ?: '#1f2937'); ?>;--advisor-bg:<?php echo esc_attr($bg_color ?: '#ffffff'); ?>;background:var(--advisor-bg)}
+        #mattress-advisor-container .progress-fill,
+        #mattress-advisor-container .mattress-submit-btn,
+        #mattress-advisor-container .mattress-next-btn{background:var(--advisor-primary)!important;border-color:var(--advisor-primary)!important}
+        #mattress-advisor-container .step.active .step-number,
+        #mattress-advisor-container .option.selected{border-color:var(--advisor-primary)!important}
+        #mattress-advisor-container .step-header h2{color:var(--advisor-accent)!important}
+    </style>
+
     <div id="mattress-advisor-container" class="mattress-wizard">
-        <!-- Progress Bar -->
         <div class="wizard-progress">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
             <div class="progress-steps">
-                <div class="step active" data-step="1">
-                    <span class="step-number">1</span>
-                </div>
-                <div class="step" data-step="2">
-                    <span class="step-number">2</span>
-                </div>
-                <div class="step" data-step="3">
-                    <span class="step-number">3</span>
-                </div>
-                <div class="step" data-step="4">
-                    <span class="step-number">4</span>
-                </div>
-                <div class="step" data-step="5">
-                    <span class="step-number">5</span>
-                </div>
+                <div class="step active" data-step="1"><span class="step-number">1</span></div>
+                <div class="step" data-step="2"><span class="step-number">2</span></div>
+                <div class="step" data-step="3"><span class="step-number">3</span></div>
+                <div class="step" data-step="4"><span class="step-number">4</span></div>
             </div>
         </div>
 
         <form id="mattress-advisor-form" class="mattress-form">
-            <!-- Step 1: Personal Information -->
             <div class="form-step active" id="step-1">
                 <div class="step-header">
-                    <h2> اطلاعات شخصی</h2>
-                    <p>لطفاً اطلاعات شخصی خود را وارد کنید</p>
+                    <h2>اطلاعات تماس</h2>
+                    <p>برای دریافت پیشنهاد درب لطفاً اطلاعات خود را وارد کنید.</p>
                 </div>
-                
                 <div class="form-grid">
                     <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('users.webp') ); ?>" alt="نام و نام خانوادگی" loading="lazy">
                         <label for="full_name">نام و نام خانوادگی <span class="required">*</span></label>
-                        <input type="text" id="full_name" name="full_name" required placeholder="نام کامل خود را وارد کنید" value="<?php echo esc_attr($full_name); ?>">
+                        <input type="text" id="full_name" name="full_name" required>
                     </div>
-                    
                     <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('icon-phones.webp') ); ?>" alt="شماره موبایل" loading="lazy">
                         <label for="mobile">شماره موبایل <span class="required">*</span></label>
-                        <input type="tel" id="mobile" name="mobile" required placeholder="09123456789" pattern="09[0-9]{9}" value="<?php echo esc_attr($mobile); ?>">
+                        <input type="tel" id="mobile" name="mobile" required pattern="09[0-9]{9}" placeholder="09123456789">
                     </div>
-                    
+                </div>
+            </div>
+
+            <div class="form-step" id="step-2">
+                <div class="step-header">
+                    <h2>نوع درب</h2>
+                    <p>مشخص کنید درب ورودی می‌خواهید یا داخلی.</p>
+                </div>
+                <div class="form-grid">
                     <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Iran_map.webp') ); ?>" alt="استان" loading="lazy">
-                        <label for="province">استان <span class="required">*</span></label>
-                        <select id="province" name="province" required>
-                            <option value="">انتخاب استان</option>
-                            <option value="tehran" <?php selected($province, 'tehran'); ?>>تهران</option>
-                            <option value="isfahan" <?php selected($province, 'isfahan'); ?>>اصفهان</option>
-                            <option value="mashhad" <?php selected($province, 'mashhad'); ?>>مشهد</option>
-                            <option value="shiraz" <?php selected($province, 'shiraz'); ?>>شیراز</option>
-                            <option value="tabriz" <?php selected($province, 'tabriz'); ?>>تبریز</option>
-                            <option value="ahvaz" <?php selected($province, 'ahvaz'); ?>>اهواز</option>
-                            <option value="qom" <?php selected($province, 'qom'); ?>>قم</option>
-                            <option value="karaj" <?php selected($province, 'karaj'); ?>>کرج</option>
-                            <option value="urmia" <?php selected($province, 'urmia'); ?>>ارومیه</option>
-                            <option value="rasht" <?php selected($province, 'rasht'); ?>>رشت</option>
-                            <option value="kerman" <?php selected($province, 'kerman'); ?>>کرمان</option>
-                            <option value="hamadan" <?php selected($province, 'hamadan'); ?>>همدان</option>
-                            <option value="yazd" <?php selected($province, 'yazd'); ?>>یزد</option>
-                            <option value="ardabil" <?php selected($province, 'ardabil'); ?>>اردبیل</option>
-                            <option value="bandar_abbas" <?php selected($province, 'bandar_abbas'); ?>>بندرعباس</option>
-                            <option value="arak" <?php selected($province, 'arak'); ?>>اراک</option>
-                            <option value="eslamshahr" <?php selected($province, 'eslamshahr'); ?>>اسلامشهر</option>
-                            <option value="kermanshah" <?php selected($province, 'kermanshah'); ?>>کرمانشاه</option>
-                            <option value="gorgan" <?php selected($province, 'gorgan'); ?>>گرگان</option>
-                            <option value="sanandaj" <?php selected($province, 'sanandaj'); ?>>سنندج</option>
-                            <option value="zahedan" <?php selected($province, 'zahedan'); ?>>زاهدان</option>
-                            <option value="zanjan" <?php selected($province, 'zanjan'); ?>>زنجان</option>
-                            <option value="sari" <?php selected($province, 'sari'); ?>>ساری</option>
-                            <option value="abadan" <?php selected($province, 'abadan'); ?>>آبادان</option>
-                            <option value="khorramabad" <?php selected($province, 'khorramabad'); ?>>خرم‌آباد</option>
-                            <option value="ilam" <?php selected($province, 'ilam'); ?>>ایلام</option>
-                            <option value="bojnurd" <?php selected($province, 'bojnurd'); ?>>بجنورد</option>
-                            <option value="birjand" <?php selected($province, 'birjand'); ?>>بیرجند</option>
-                            <option value="bushehr" <?php selected($province, 'bushehr'); ?>>بوشهر</option>
-                            <option value="semnan" <?php selected($province, 'semnan'); ?>>سمنان</option>
-                            <option value="yasuj" <?php selected($province, 'yasuj'); ?>>یاسوج</option>
-                            <option value="shahrekord" <?php selected($province, 'shahrekord'); ?>>شهرکرد</option>
+                        <label>نوع درب <span class="required">*</span></label>
+                        <div class="form-options" role="radiogroup" aria-label="نوع درب">
+                            <label class="option"><input type="radio" name="door_type" value="entrance" required> <span class="option-label">درب ورودی</span></label>
+                            <label class="option"><input type="radio" name="door_type" value="interior" required> <span class="option-label">درب داخلی</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-step" id="step-3">
+                <div class="step-header">
+                    <h2>جزئیات درب ورودی</h2>
+                    <p>این بخش فقط برای درب ورودی است.</p>
+                </div>
+                <div class="form-grid door-section" data-door="entrance" style="display:none;">
+                    <div class="form-group">
+                        <label>نوع ساختمان <span class="required">*</span></label>
+                        <div class="form-options" role="radiogroup">
+                            <label class="option"><input type="radio" name="building_type" value="apartment" data-conditional-required="entrance"> <span class="option-label">آپارتمانی</span></label>
+                            <label class="option"><input type="radio" name="building_type" value="villa" data-conditional-required="entrance"> <span class="option-label">ویلایی</span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>برخورد آفتاب و باران <span class="required">*</span></label>
+                        <div class="form-options" role="radiogroup">
+                            <label class="option"><input type="radio" name="weather_exposure" value="yes" data-conditional-required="entrance"> <span class="option-label">بله</span></label>
+                            <label class="option"><input type="radio" name="weather_exposure" value="no" data-conditional-required="entrance"> <span class="option-label">خیر</span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="facade_style">سبک نما <span class="required">*</span></label>
+                        <select id="facade_style" name="facade_style" data-conditional-required="entrance">
+                            <option value="">انتخاب کنید</option>
+                            <option value="modern">مدرن</option>
+                            <option value="neo_classic">نئو کلاسیک</option>
+                            <option value="classic">کلاسیک</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="entrance_material">متریال درب <span class="required">*</span></label>
+                        <select id="entrance_material" name="entrance_material" data-conditional-required="entrance">
+                            <option value="">انتخاب کنید</option>
+                            <option value="wood">چوب</option>
+                            <option value="metal">فلزی</option>
+                            <option value="glass">شیشه</option>
+                            <option value="thermowood">ترمووود</option>
+                            <option value="mdf">MDF</option>
+                            <option value="synthetic_coating">روکش مصنوعی</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="door_height">ارتفاع (cm) <span class="required">*</span></label>
+                        <input type="number" id="door_height" name="door_height" min="150" max="350" data-conditional-required="entrance">
+                    </div>
+                    <div class="form-group">
+                        <label for="door_width">عرض (cm) <span class="required">*</span></label>
+                        <input type="number" id="door_width" name="door_width" min="60" max="350" data-conditional-required="entrance">
+                        <small>تا ارتفاع 235 و عرض 220 مناسب درب ضد سرقت است؛ بزرگ‌تر از این ابعاد معمولاً پیووت پیشنهاد می‌شود.</small>
+                    </div>
+                </div>
+                <div class="door-type-hint" data-hint="interior" style="display:none;">برای درب داخلی در مرحله بعدی اطلاعات را تکمیل کنید.</div>
+            </div>
+
+            <div class="form-step" id="step-4">
+                <div class="step-header">
+                    <h2>جزئیات درب داخلی</h2>
+                    <p>این بخش فقط برای درب داخلی است.</p>
+                </div>
+                <div class="form-grid door-section" data-door="interior" style="display:none;">
+                    <div class="form-group">
+                        <label>ضدآب <span class="required">*</span></label>
+                        <div class="form-options" role="radiogroup">
+                            <label class="option"><input type="radio" name="waterproof" value="yes" data-conditional-required="interior"> <span class="option-label">بله</span></label>
+                            <label class="option"><input type="radio" name="waterproof" value="no" data-conditional-required="interior"> <span class="option-label">خیر</span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>چهارچوب فلزی نصب شده <span class="required">*</span></label>
+                        <div class="form-options" role="radiogroup">
+                            <label class="option"><input type="radio" name="metal_frame_installed" value="yes" data-conditional-required="interior"> <span class="option-label">بله</span></label>
+                            <label class="option"><input type="radio" name="metal_frame_installed" value="no" data-conditional-required="interior"> <span class="option-label">خیر</span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="usage_space">فضای مورد استفاده <span class="required">*</span></label>
+                        <select id="usage_space" name="usage_space" data-conditional-required="interior">
+                            <option value="">انتخاب کنید</option>
+                            <option value="room">اتاق</option>
+                            <option value="wc">سرویس بهداشتی</option>
+                            <option value="bathroom">حمام</option>
+                            <option value="pool">استخر</option>
+                            <option value="management">اتاق مدیریت</option>
+                            <option value="conference">کنفرانس</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="interior_style">سبک <span class="required">*</span></label>
+                        <select id="interior_style" name="interior_style" data-conditional-required="interior">
+                            <option value="">انتخاب کنید</option>
+                            <option value="modern">مدرن</option>
+                            <option value="neo_classic">نئو کلاسیک</option>
+                            <option value="classic">کلاسیک</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="color_theme">تم رنگ <span class="required">*</span></label>
+                        <select id="color_theme" name="color_theme" data-conditional-required="interior">
+                            <option value="">انتخاب کنید</option>
+                            <option value="colored">رنگی</option>
+                            <option value="black_theme">تم سیاه</option>
+                            <option value="light_theme">تم روشن</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>نوار درزگیر <span class="required">*</span></label>
+                        <div class="form-options" role="radiogroup">
+                            <label class="option"><input type="radio" name="weatherstrip" value="yes" data-conditional-required="interior"> <span class="option-label">دارد</span></label>
+                            <label class="option"><input type="radio" name="weatherstrip" value="no" data-conditional-required="interior"> <span class="option-label">ندارد</span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="interior_material">جنس درب <span class="required">*</span></label>
+                        <select id="interior_material" name="interior_material" data-conditional-required="interior">
+                            <option value="">انتخاب کنید</option>
+                            <option value="mdf_melamine">MDF و ملامینه</option>
+                            <option value="abs">ABS</option>
+                            <option value="polywood">پلی‌وود</option>
                         </select>
                     </div>
                 </div>
+                <div class="door-type-hint" data-hint="entrance" style="display:none;">برای درب ورودی در مرحله قبل اطلاعات را تکمیل کرده‌اید.</div>
             </div>
 
-            <!-- Step 2: Physical Characteristics -->
-            <div class="form-step" id="step-2">
-                <div class="step-header">
-                    <h2>مشخصات فیزیکی</h2>
-                    <p>اطلاعات فیزیکی شما برای انتخاب تشک مناسب ضروری است</p>
-                </div>
-                
-                <div class="physical-characteristics-grid">
-                    <div class="form-group age-range-group">
-                        <div class="field-header">
-                            <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('age.webp') ); ?>" alt="سن" loading="lazy">
-                            <label for="age">سن <span class="required">*</span></label>
-                        </div>
-                        <?php $age_value = isset($user_meta['age'][0]) ? intval($user_meta['age'][0]) : 25; ?>
-                        <div class="enhanced-slider-wrapper">
-                            <div class="slider-container">
-                                <div class="range-labels">
-                                    <span class="range-min">5 سال</span>
-                                    <span class="range-max">99 سال</span>
-                                </div>
-                                <div class="slider-track">
-                                    <input type="range" id="age" name="age" required min="5" max="99" value="<?php echo esc_attr( $age_value ); ?>" class="enhanced-slider">
-                                    <div class="slider-progress"></div>
-                                </div>
-                                <div class="value-display">
-                                    <div class="value-bubble" id="age-display"><?php echo esc_html( $age_value ); ?></div>
-                                    <div class="value-unit">سال</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group height-range-group">
-                        <div class="field-header">
-                            <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('height.webp') ); ?>" alt="قد" loading="lazy">
-                            <label for="height">قد <span class="required">*</span></label>
-                        </div>
-                        <?php $height_value = isset($user_meta['height'][0]) ? intval($user_meta['height'][0]) : 170; ?>
-                        <div class="enhanced-slider-wrapper">
-                            <div class="slider-container">
-                                <div class="range-labels">
-                                    <span class="range-min">30 سانتی‌متر</span>
-                                    <span class="range-max">230 سانتی‌متر</span>
-                                </div>
-                                <div class="slider-track">
-                                    <input type="range" id="height" name="height" required min="30" max="230" value="<?php echo esc_attr( $height_value ); ?>" class="enhanced-slider">
-                                    <div class="slider-progress"></div>
-                                </div>
-                                <div class="value-display">
-                                    <div class="value-bubble" id="height-display"><?php echo esc_html( $height_value ); ?></div>
-                                    <div class="value-unit">سانتی‌متر</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group weight-range-group">
-                        <div class="field-header">
-                            <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Weight.webp') ); ?>" alt="وزن" loading="lazy">
-                            <label for="weight">وزن <span class="required">*</span></label>
-                        </div>
-                        <?php $weight_value = isset($user_meta['weight'][0]) ? intval($user_meta['weight'][0]) : 70; ?>
-                        <div class="enhanced-slider-wrapper">
-                            <div class="slider-container">
-                                <div class="range-labels">
-                                    <span class="range-min">50 کیلوگرم</span>
-                                    <span class="range-max">110 کیلوگرم</span>
-                                </div>
-                                <div class="slider-track">
-                                    <input type="range" id="weight" name="weight" required min="50" max="110" value="<?php echo esc_attr( $weight_value ); ?>" class="enhanced-slider">
-                                    <div class="slider-progress"></div>
-                                </div>
-                                <div class="value-display">
-                                    <div class="value-bubble" id="weight-display"><?php echo esc_html( $weight_value ); ?></div>
-                                    <div class="value-unit">کیلوگرم</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step 3: Sleep Preferences -->
-            <div class="form-step" id="step-3">
-                <div class="step-header">
-                    <h2> ترجیحات خواب</h2>
-                    <p>اطلاعات مربوط به نحوه خواب و ترجیحات شما</p>
-                </div>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Waist-hollow.webp') ); ?>" alt="گودی کمر" loading="lazy">
-                        <label>گودی کمر <span class="required">*</span></label>
-                        <div class="form-options" role="radiogroup" aria-label="گودی کمر">
-                            <label class="option"><input type="radio" name="back_curve" value="has_curve" required> <span class="option-label">مناسب افرادی که گودی کمر دارند</span></label>
-                            <label class="option"><input type="radio" name="back_curve" value="not_allowed" required> <span class="option-label">در صورت داشتن گودی کمر خرید مجاز نیست</span></label>
-                            <label class="option"><input type="radio" name="back_curve" value="supports_curve" required> <span class="option-label">مناسب افرادی که گودی کمر دارند</span></label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Sleep-type.webp') ); ?>" alt="نوع خواب" loading="lazy">
-                        <label>نوع خواب <span class="required">*</span></label>
-                        <div class="form-options" role="radiogroup" aria-label="نوع خواب">
-                            <label class="option"><input type="radio" name="sleep_type" value="light" required> <span class="option-label">خواب سبک</span></label>
-                            <label class="option"><input type="radio" name="sleep_type" value="heavy" required> <span class="option-label">خواب سنگین</span></label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Number-of-people.webp') ); ?>" alt="تعداد نفرات" loading="lazy">
-                        <label>تعداد نفرات <span class="required">*</span></label>
-                        <div class="form-options" role="radiogroup" aria-label="تعداد نفرات">
-                            <label class="option"><input type="radio" name="persons" value="1" required> <span class="option-label">یک نفره</span></label>
-                            <label class="option"><input type="radio" name="persons" value="2" required> <span class="option-label">دو نفره</span></label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step 4: Mattress Specifications -->
-            <div class="form-step" id="step-4">
-                <div class="step-header">
-                    <h2>مشخصات تشک</h2>
-                    <p>ویژگی‌های مورد نظر شما برای تشک</p>
-                </div>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Quality.webp') ); ?>" alt="کیفیت" loading="lazy">
-                        <label>کیفیت <span class="required">*</span></label>
-                        <div class="form-options" role="radiogroup" aria-label="کیفیت">
-                            <label class="option"><input type="radio" name="quality" value="excellent" required> <span class="option-label">عالی (درجه یک)</span></label>
-                            <label class="option"><input type="radio" name="quality" value="good" required> <span class="option-label">مطلوب (درجه دو)</span></label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Reactionary.webp') ); ?>" alt="حالت ارتجاعی" loading="lazy">
-                        <label>حالت ارتجاعی <span class="required">*</span></label>
-                        <div class="form-options" role="radiogroup" aria-label="حالت ارتجاعی">
-                            <label class="option"><input type="radio" name="elasticity" value="low" required> <span class="option-label">بله - کم</span></label>
-                            <label class="option"><input type="radio" name="elasticity" value="very_low" required> <span class="option-label">بله - خیلی کم</span></label>
-                            <label class="option"><input type="radio" name="elasticity" value="has" required> <span class="option-label">دارد</span></label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Back-pain-or-surgery.webp') ); ?>" alt="مشکل کمردرد یا جراحی" loading="lazy">
-                        <label>مشکل کمردرد یا جراحی <span class="required">*</span></label>
-                        <div class="form-options" role="radiogroup" aria-label="مشکل کمردرد یا جراحی">
-                            <label class="option"><input type="radio" name="back_pain" value="no" required> <span class="option-label">ندارد</span></label>
-                            <label class="option"><input type="radio" name="back_pain" value="yes" required> <span class="option-label">دارد</span></label>
-                        </div>
-                    </div>
-                    
-                    <!-- Note: 'نوع استفاده' and 'نوع کاربرد' moved to a separate step (step-5) -->
-                </div>
-            </div>
-
-            <!-- Step 5: Usage Type -->
-            <div class="form-step" id="step-5">
-                <div class="step-header">
-                    <h2>نوع استفاده</h2>
-                    <p>لطفاً نوع استفاده و نوع کاربرد تشک را انتخاب کنید</p>
-                </div>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('Type-of-use.webp') ); ?>" alt="نوع استفاده" loading="lazy">
-                        <label>نوع استفاده <span class="required">*</span></label>
-                        <div class="form-options" role="radiogroup" aria-label="نوع استفاده">
-                            <label class="option"><input type="radio" name="usage_type" value="temporary" required> <span class="option-label">موقت</span></label>
-                            <label class="option"><input type="radio" name="usage_type" value="permanent" required> <span class="option-label">دائم</span></label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <img class="field-icon" src="<?php echo esc_url( MATTRESS_ADVISOR_URL . 'assets/' . rawurlencode('villa.webp') ); ?>" alt="نوع کاربرد" loading="lazy">
-                        <label>نوع کاربرد <span class="required">*</span></label>
-                        <div class="form-options" role="radiogroup" aria-label="نوع کاربرد">
-                            <label class="option"><input type="radio" name="usage_place" value="home" required> <span class="option-label">خانه</span></label>
-                            <label class="option"><input type="radio" name="usage_place" value="villa" required> <span class="option-label">ویلا</span></label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Navigation Buttons -->
             <div class="form-navigation">
-                <button type="button" id="prev-btn" class="mattress-nav-btn mattress-prev-btn" style="display: none;">
-                     مرحله قبل
-                </button>
-                
-                <button type="button" id="next-btn" class="mattress-nav-btn mattress-next-btn">
-                    مرحله بعد 
-                </button>
-                
-                <button type="submit" id="submit-btn" class="mattress-nav-btn mattress-submit-btn" style="display: none;">
-                    دریافت پیشنهاد تشک
-                </button>
+                <button type="button" id="prev-btn" class="mattress-nav-btn mattress-prev-btn" style="display: none;">مرحله قبل</button>
+                <button type="button" id="next-btn" class="mattress-nav-btn mattress-next-btn">مرحله بعد</button>
+                <button type="submit" id="submit-btn" class="mattress-nav-btn mattress-submit-btn" style="display: none;">دریافت پیشنهاد درب</button>
             </div>
         </form>
-        
-        <div id="mattress-result" class="result-container" style="display: none;">
-            <!-- Results will be loaded here -->
-        </div>
+
+        <div id="mattress-result" class="result-container" style="display: none;"></div>
     </div>
     <?php
     wp_enqueue_script('mattress-form-js', MATTRESS_ADVISOR_URL . 'frontend/form.js', ['jquery'], MATTRESS_ADVISOR_VERSION, true);

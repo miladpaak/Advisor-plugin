@@ -107,9 +107,10 @@ function mattress_advisor_update_rule() {
 
     // Define the fields that make up a rule's conditions
     $condition_keys = [
-        'age_min', 'age_max', 'height_min', 'height_max', 'weight_min', 'weight_max',
-        'back_curve', 'sleep_type', 'persons', 'quality', 'elasticity', 
-        'back_pain', 'usage_type', 'usage_place'
+        'door_type', 'building_type', 'weather_exposure', 'facade_style', 'entrance_material',
+        'door_width_min', 'door_width_max', 'door_height_min', 'door_height_max',
+        'waterproof', 'metal_frame_installed', 'usage_space', 'interior_style',
+        'color_theme', 'weatherstrip', 'interior_material'
     ];
 
     $conditions = [];
@@ -169,11 +170,11 @@ function mattress_advisor_process_form() {
         $matched = true;
         foreach ($conditions as $key => $value) {
             // Skip range keys, they are handled with their base keys
-            if (in_array($key, ['age_min', 'age_max', 'height_min', 'height_max', 'weight_min', 'weight_max'])) {
+            if (in_array($key, ['door_width_min', 'door_width_max', 'door_height_min', 'door_height_max'])) {
                 continue;
             }
 
-            if (in_array($key, ['age', 'height', 'weight'])) {
+            if (in_array($key, ['door_width', 'door_height'])) {
                 $val = isset($form_data[$key]) ? intval($form_data[$key]) : null;
                 $min = isset($conditions[$key.'_min']) ? intval($conditions[$key.'_min']) : null;
                 $max = isset($conditions[$key.'_max']) ? intval($conditions[$key.'_max']) : null; // Corrected typo: ._max -> _max
@@ -225,7 +226,7 @@ function mattress_advisor_process_form() {
 
             $form_val_norm = mattress_advisor_normalize_value($key, $form_val);
 
-            if (in_array($key, ['age', 'height', 'weight'])) {
+            if (in_array($key, ['door_width', 'door_height'])) {
                 $fv = intval($form_val_norm);
                 $min = isset($conditions[$key.'_min']) ? intval($conditions[$key.'_min']) : null;
                 $max = isset($conditions[$key.'_max']) ? intval($conditions[$key.'_max']) : null;
@@ -577,21 +578,29 @@ function mattress_advisor_delete_history() {
 function mattress_advisor_explain_choice( $form_data ) {
     $reasons = [];
 
-    if ( isset($form_data['weight']) && intval($form_data['weight']) > 80 ) {
-        $reasons[] = 'به دلیل وزن بالاتر از ۸۰ کیلوگرم، تشک‌های با تراکم بالا و فوم فشرده برای شما مناسب هستند.';
+    if ( isset($form_data['door_type']) && $form_data['door_type'] === 'entrance' ) {
+        $reasons[] = 'با توجه به اینکه درب ورودی مدنظر شماست، مقاومت و امنیت در اولویت قرار گرفته است.';
+        if ( isset($form_data['weather_exposure']) && $form_data['weather_exposure'] === 'yes' ) {
+            $reasons[] = 'به دلیل برخورد مستقیم آفتاب و باران، گزینه‌های مقاوم در برابر شرایط محیطی پیشنهاد شده‌اند.';
+        }
+        if ( isset($form_data['door_width'], $form_data['door_height']) ) {
+            $w = intval($form_data['door_width']);
+            $h = intval($form_data['door_height']);
+            if ($w > 220 || $h > 235) {
+                $reasons[] = 'با توجه به ابعاد اعلام‌شده، درب پیووت می‌تواند انتخاب مناسب‌تری نسبت به درب ضد سرقت استاندارد باشد.';
+            }
+        }
     }
-    if ( isset($form_data['sleep_type']) && $form_data['sleep_type'] == 'heavy' ) {
-        $reasons[] = 'چون خواب سنگین دارید، تشک با استحکام و ساپورت بالا برای شما توصیه می‌شود.';
-    }
-    if ( isset($form_data['back_pain']) && $form_data['back_pain'] == 'yes' ) {
-        $reasons[] = 'با توجه به مشکل کمر، تشک طبی با فوم مموری پیشنهاد می‌شود.';
-    }
-    if ( isset($form_data['usage_place']) && $form_data['usage_place'] == 'villa' ) {
-        $reasons[] = 'چون استفاده شما در ویلا است، تشک‌هایی با تهویه مناسب و ضد رطوبت انتخاب خوبی هستند.';
+
+    if ( isset($form_data['door_type']) && $form_data['door_type'] === 'interior' ) {
+        $reasons[] = 'با توجه به داخلی بودن درب، هماهنگی با دکوراسیون و کاربری فضا لحاظ شده است.';
+        if ( isset($form_data['waterproof']) && $form_data['waterproof'] === 'yes' ) {
+            $reasons[] = 'به دلیل نیاز به مقاومت رطوبتی، گزینه‌های ضدآب در اولویت قرار گرفته‌اند.';
+        }
     }
 
     if ( empty($reasons) ) {
-        return 'این تشک با توجه به ویژگی‌های کلی شما از نظر راحتی، تراکم و کیفیت، گزینه مناسبی است.';
+        return 'این گزینه بر اساس اطلاعات شما از نظر متریال، استایل و کاربرد بهترین انتخاب است.';
     }
 
     return implode(' ', $reasons);
@@ -601,35 +610,22 @@ function mattress_advisor_explain_choice( $form_data ) {
 function mattress_advisor_normalize_value( $key, $value ) {
     $val = is_string($value) ? trim($value) : $value;
     if (!is_string($val)) return $val;
-    $val_lc = strtolower($val);
+
     switch ($key) {
-        case 'persons':
-            $map = [ 'یک نفره' => '1', 'دو نفره' => '2', '1' => '1', '2' => '2' ];
-            return isset($map[$val]) ? $map[$val] : $val;
-        case 'sleep_type':
-            $map = [ 'سبک' => 'light', 'سنگین' => 'heavy', 'light' => 'light', 'heavy' => 'heavy' ];
-            return isset($map[$val]) ? $map[$val] : $val;
-        case 'quality':
-            $map = [ 'عالی' => 'excellent', 'عالی (درجه یک)' => 'excellent', 'مطلوب' => 'good', 'مطلوب (درجه دو)' => 'good', 'excellent' => 'excellent', 'good' => 'good' ];
-            return isset($map[$val]) ? $map[$val] : $val;
-        case 'elasticity':
-            $map = [ 'کم' => 'low', 'خیلی کم' => 'very_low', 'دارد' => 'has', 'low' => 'low', 'very_low' => 'very_low', 'has' => 'has' ];
-            return isset($map[$val]) ? $map[$val] : $val;
-        case 'back_pain':
-            $map = [ 'ندارد' => 'no', 'دارد' => 'yes', 'no' => 'no', 'yes' => 'yes' ];
-            return isset($map[$val]) ? $map[$val] : $val;
-        case 'usage_type':
-            $map = [ 'موقت' => 'temporary', 'دائم' => 'permanent', 'temporary' => 'temporary', 'permanent' => 'permanent' ];
-            return isset($map[$val]) ? $map[$val] : $val;
-        case 'usage_place':
-            $map = [ 'خانه' => 'home', 'ویلا' => 'villa', 'home' => 'home', 'villa' => 'villa' ];
-            return isset($map[$val]) ? $map[$val] : $val;
-        case 'back_curve':
-            // Map legacy Persian descriptors to canonical choices
-            $map = [ 'کم' => 'supports_curve', 'متوسط' => 'supports_curve', 'زیاد' => 'has_curve', 'has_curve' => 'has_curve', 'supports_curve' => 'supports_curve', 'not_allowed' => 'not_allowed' ];
-            return isset($map[$val]) ? $map[$val] : $val;
+        case 'door_type':
+            $map = ['ورودی' => 'entrance', 'داخلی' => 'interior', 'entrance' => 'entrance', 'interior' => 'interior'];
+            return $map[$val] ?? strtolower($val);
+        case 'building_type':
+            $map = ['آپارتمانی' => 'apartment', 'ویلایی' => 'villa', 'apartment' => 'apartment', 'villa' => 'villa'];
+            return $map[$val] ?? strtolower($val);
+        case 'weather_exposure':
+        case 'waterproof':
+        case 'metal_frame_installed':
+        case 'weatherstrip':
+            $map = ['بله' => 'yes', 'خیر' => 'no', 'دارد' => 'yes', 'ندارد' => 'no', 'yes' => 'yes', 'no' => 'no'];
+            return $map[$val] ?? strtolower($val);
         default:
-            return $val_lc;
+            return strtolower($val);
     }
 }
 
@@ -709,9 +705,9 @@ function mattress_advisor_add_rule() {
 
     // Only allow relevant condition keys
     $allowed_keys = [
-        'age','height','weight','back_curve','sleep_type','persons',
-        'quality','elasticity','back_pain','usage_type','usage_place',
-        'age_min','age_max','height_min','height_max','weight_min','weight_max'
+        'door_type','building_type','weather_exposure','facade_style','entrance_material',
+        'door_width','door_height','door_width_min','door_width_max','door_height_min','door_height_max',
+        'waterproof','metal_frame_installed','usage_space','interior_style','color_theme','weatherstrip','interior_material'
     ];
     $filtered = [];
     foreach ($conditions as $k => $v) {
@@ -807,9 +803,10 @@ function mattress_advisor_check_conflicts() {
     $table = $wpdb->prefix . 'mattress_rules';
 
     $allowed_keys = [
-        'age_min', 'age_max', 'height_min', 'height_max', 'weight_min', 'weight_max',
-        'back_curve', 'sleep_type', 'persons', 'quality', 'elasticity', 
-        'back_pain', 'usage_type', 'usage_place'
+        'door_type', 'building_type', 'weather_exposure', 'facade_style', 'entrance_material',
+        'door_width_min', 'door_width_max', 'door_height_min', 'door_height_max',
+        'waterproof', 'metal_frame_installed', 'usage_space', 'interior_style',
+        'color_theme', 'weatherstrip', 'interior_material'
     ];
     $new_conditions = [];
     foreach ($allowed_keys as $key) {
@@ -834,7 +831,7 @@ function mattress_advisor_check_conflicts() {
             }
 
             // Handle numeric range conflicts
-            if (in_array($key, ['age', 'height', 'weight'])) {
+            if (in_array($key, ['door_width', 'door_height'])) {
                 $new_min = isset($new_conditions[$key.'_min']) ? intval($new_conditions[$key.'_min']) : null;
                 $new_max = isset($new_conditions[$key.'_max']) ? intval($new_conditions[$key.'_max']) : null;
                 $existing_min = isset($existing_conditions[$key.'_min']) ? intval($existing_conditions[$key.'_min']) : null;
@@ -868,46 +865,41 @@ function mattress_advisor_check_conflicts() {
 
 // ---------------------- Form completion validation ----------------------
 function mattress_advisor_is_form_complete($form_data) {
-    // Required fields for a complete form
-    $required_fields = [
-        'full_name',
-        'mobile', 
-        'province',
-        'age',
-        'height',
-        'weight',
-        'back_curve',
-        'sleep_type',
-        'persons',
-        'quality',
-        'elasticity',
-        'back_pain',
-        'usage_type',
-        'usage_place'
-    ];
-    
-    // Check if all required fields are present and not empty
-    foreach ($required_fields as $field) {
-        if (!isset($form_data[$field]) || empty(trim($form_data[$field]))) {
+    $base_fields = ['full_name', 'mobile', 'door_type'];
+    foreach ($base_fields as $field) {
+        if (!isset($form_data[$field]) || trim((string)$form_data[$field]) === '') {
             return false;
         }
     }
-    
-    // Additional validation for specific fields
-    // Check mobile format
+
     if (!preg_match('/^09[0-9]{9}$/', $form_data['mobile'])) {
         return false;
     }
-    
-    // Check numeric fields are within valid ranges
-    $age = intval($form_data['age']);
-    $height = intval($form_data['height']);
-    $weight = intval($form_data['weight']);
-    
-    if ($age < 5 || $age > 99 || $height < 30 || $height > 230 || $weight < 50 || $weight > 110) {
-        return false;
+
+    if ($form_data['door_type'] === 'entrance') {
+        $required = ['building_type','weather_exposure','facade_style','entrance_material','door_width','door_height'];
+        foreach ($required as $field) {
+            if (!isset($form_data[$field]) || trim((string)$form_data[$field]) === '') {
+                return false;
+            }
+        }
+
+        $door_width = intval($form_data['door_width']);
+        $door_height = intval($form_data['door_height']);
+        if ($door_width < 60 || $door_width > 350 || $door_height < 150 || $door_height > 350) {
+            return false;
+        }
     }
-    
+
+    if ($form_data['door_type'] === 'interior') {
+        $required = ['waterproof','metal_frame_installed','usage_space','interior_style','color_theme','weatherstrip','interior_material'];
+        foreach ($required as $field) {
+            if (!isset($form_data[$field]) || trim((string)$form_data[$field]) === '') {
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
